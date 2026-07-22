@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Central de Compras — 3M Agropecuária</title>
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #f4f6f8; }
+    iframe { width: 100%; height: 100vh; border: none; display: block; }
+    #fallback {
+      display: none;
+      max-width: 460px;
+      margin: 80px auto;
+      background: #fff;
+      border: 1px solid #dde3e8;
+      border-radius: 10px;
+      padding: 32px;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #1c2b3a;
+      text-align: center;
+    }
+    #fallback a { color: #0f2942; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <!-- Preencha SYSTEM_URL abaixo com a URL do Web App do Apps Script (termina em /exec) -->
+  <iframe
+    id="appFrame"
+    src="https://script.google.com/a/macros/3m.agr.br/s/AKfycbwRRW_8BgZiGML-EaMRueWuq_zKQJcHFJKXCCh3QrZ4aKDsD2tXb1_uvOSflj5lGCsX/exec"
+    title="Central de Compras — Nova Solicitação">
+  </iframe>
+
+  <div id="fallback">
+    <p>Não foi possível carregar o sistema aqui dentro.</p>
+    <p>Isso costuma acontecer quando o navegador bloqueia cookies de terceiros para o
+       Google. Tente permitir cookies de terceiros para <b>google.com</b> e
+       <b>script.google.com</b>, ou abra o sistema diretamente:</p>
+    <p><a id="linkDireto" href="#" target="_blank">Abrir em outra aba</a></p>
+  </div>
+
+  <script>
+    const SYSTEM_URL = document.getElementById('appFrame').src;
+    document.getElementById('linkDireto').href = SYSTEM_URL;
+
+    // Se o iframe não carregar em alguns segundos, mostra o fallback com o link direto.
+    let carregou = false;
+    document.getElementById('appFrame').addEventListener('load', function() { carregou = true; });
+    setTimeout(function() {
+      if (!carregou) {
+        document.getElementById('appFrame').style.display = 'none';
+        document.getElementById('fallback').style.display = 'block';
+      }
+    }, 6000);
+  </script>
+</body>
+</html>
