@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    :root {
+      --navy: #0f2942;
+      --navy-light: #1e3f5c;
+      --amber: #d99e2b;
+      --amber-light: #f0c674;
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1c2b3a;
+      --muted: #6b7c8d;
+      --border: #dde3e8;
+      --danger: #b3432b;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    .header { background: var(--navy); color: #fff; padding: 20px 28px; border-radius: 8px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 18px; margin: 0; font-weight: 600; letter-spacing: 0.3px; }
+    .header .user { font-size: 13px; color: var(--amber-light); text-align: right; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--navy); margin: 0 0 16px 0; border-bottom: 2px solid var(--amber); padding-bottom: 8px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+    input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 5px; font-size: 14px; font-family: inherit; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy-light); }
+    textarea { resize: vertical; min-height: 44px; }
+    .field { margin-bottom: 0; }
+    .item-block { border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 14px; position: relative; background: #fbfcfd; }
+    .item-block .item-num { position: absolute; top: -11px; left: 14px; background: var(--navy); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; }
+    .item-block .remove-item { position: absolute; top: -11px; right: 14px; background: var(--danger); color: #fff; border: none; border-radius: 10px; font-size: 11px; padding: 3px 10px; cursor: pointer; }
+    .tipo-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tipo-toggle button { flex: 1; padding: 8px; border: 1px solid var(--border); background: #fff; border-radius: 5px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+    .tipo-toggle button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .btn-add { background: none; border: 2px dashed var(--amber); color: var(--navy); padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn-add:hover { background: #fdf6e8; }
+    .footer-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+    .btn-primary { background: var(--amber); color: var(--navy); border: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; }
+    .btn-primary:hover { background: var(--amber-light); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    #msg { display: none; padding: 14px 18px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; }
+    #msg.ok { background: #e5f3e8; color: #256a3a; display: block; }
+    #msg.err { background: #fbe7e3; color: var(--danger); display: block; }
+    .foto-preview img { max-width: 120px; max-height: 120px; border-radius: 6px; margin-top: 8px; border: 1px solid var(--border); display: block; }
+    .foto-preview .foto-erro { font-size: 12px; color: var(--danger); margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Central de Compras · Nova Solicitação</h1>
+    <div class="user" id="userInfo">Carregando usuário...</div>
+  </div>
+
+  <div id="msg"></div>
+
+  <div class="card">
+    <h2>Dados da Solicitação</h2>
+    <div class="grid">
+      <div class="field">
+        <label>Fazenda de destino</label>
+        <input type="text" id="fazenda" placeholder="Ex: Fazenda São Geraldo">
+      </div>
+      <div class="field">
+        <label>Prioridade</label>
+        <select id="prioridade">
+          <option value="Alto">Alto — chegar em até 1 dia</option>
+          <option value="Médio" selected>Médio — chegar em até 3 dias</option>
+          <option value="Baixo">Baixo — chegar em 5 dias ou mais</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Itens da Solicitação</h2>
+    <div id="itensContainer"></div>
+    <button class="btn-add" id="btnAddItem" type="button">+ Adicionar item</button>
+  </div>
+
+  <div class="footer-actions">
+    <button class="btn-primary" id="btnEnviar" type="button">Enviar solicitação</button>
+  </div>
+
+  <script>
+    const CATEGORIAS_FALLBACK = ['SANIDADE','MANUTENÇÃO PECUÁRIA','OBRAS E INFRAESTRUTURAS','DESPESAS ADMINISTRATIVAS','MANUTENÇÃO AGRICULTURA','E.P.I','COMBUSTÍVEL','SEDE','VEÍCULOS PECUÁRIA','VEÍCULOS AGRICULTURA','SEGUROS','VEÍCULOS ADMINISTRATIVO'];
+    let categorias = CATEGORIAS_FALLBACK;
+    let itemCount = 0;
+    const itemFotos = {};
+    const TAMANHO_MAX_FOTO_MB = 5;
+
+    function itemTemplate(id) {
+      return (
+        '<div class="item-block" data-id="' + id + '">' +
+          '<span class="item-num">Item ' + id + '</span>' +
+          '<button class="remove-item" type="button" onclick="removerItem(' + id + ')">remover</button>' +
+          '<div class="tipo-toggle">' +
+            '<button type="button" class="tipo-btn active" data-tipo="Produto" onclick="setTipo(' + id + ',\'Produto\')">Produto</button>' +
+            '<button type="button" class="tipo-btn" data-tipo="Servico" onclick="setTipo(' + id + ',\'Servico\')">Serviço de Terceiro</button>' +
+          '</div>' +
+          '<input type="hidden" class="f-tipo" value="Produto">' +
+          '<div class="grid" style="margin-bottom:12px;">' +
+            '<div class="field" style="grid-column: span 2;">' +
+              '<label class="lbl-descricao">Descrição do item</label>' +
+              '<input type="text" class="f-descricao" placeholder="Ex: Cimento CP-II">' +
+            '</div>' +
+          '</div>' +
+          '<div class="grid" style="margin-bottom:12px;">' +
+            '<div class="field campo-qtd">' +
+              '<label>Quantidade</label>' +
+              '<input type="text" class="f-quantidade" placeholder="Ex: 120">' +
+            '</div>' +
+            '<div class="field">' +
+              '<label>Categoria</label>' +
+              '<select class="f-categoria"></select>' +
+            '</div>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:12px;">' +
+            '<label>Justificativa / necessidade da compra</label>' +
+            '<textarea class="f-justificativa" placeholder="Por que essa compra é necessária?"></textarea>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:12px;">' +
+            '<label>Complementos (opcional)</label>' +
+            '<input type="text" class="f-complementos" placeholder="Observações adicionais">' +
+          '</div>' +
+          '<div class="field">' +
+            '<label>Foto do produto (opcional)</label>' +
+            '<input type="file" accept="image/*" capture="environment" class="f-foto" onchange="handleFotoChange(' + id + ', this)">' +
+            '<div class="foto-preview" id="preview-' + id + '"></div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+
+    function preencherCategorias(select) {
+      select.innerHTML = categorias.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+    }
+
+    function adicionarItem() {
+      itemCount++;
+      const container = document.getElementById('itensContainer');
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = itemTemplate(itemCount);
+      const block = wrapper.firstElementChild;
+      container.appendChild(block);
+      preencherCategorias(block.querySelector('.f-categoria'));
+    }
+
+    function removerItem(id) {
+      const block = document.querySelector('.item-block[data-id="' + id + '"]');
+      if (block) block.remove();
+      delete itemFotos[id];
+    }
+
+    function setTipo(id, tipo) {
+      const block = document.querySelector('.item-block[data-id="' + id + '"]');
+      block.querySelector('.f-tipo').value = tipo;
+      block.querySelectorAll('.tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipo));
+      const campoQtd = block.querySelector('.campo-qtd');
+      const lblDescricao = block.querySelector('.lbl-descricao');
+      if (tipo === 'Servico') {
+        campoQtd.style.display = 'none';
+        lblDescricao.textContent = 'Escopo do serviço';
+      } else {
+        campoQtd.style.display = 'block';
+        lblDescricao.textContent = 'Descrição do item';
+      }
+    }
+
+    function handleFotoChange(id, input) {
+      const preview = document.getElementById('preview-' + id);
+      preview.innerHTML = '';
+      const file = input.files[0];
+      if (!file) { delete itemFotos[id]; return; }
+
+      if (file.size > TAMANHO_MAX_FOTO_MB * 1024 * 1024) {
+        preview.innerHTML = '<div class="foto-erro">Foto maior que ' + TAMANHO_MAX_FOTO_MB + 'MB — escolha uma imagem menor.</div>';
+        input.value = '';
+        delete itemFotos[id];
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const base64 = dataUrl.split(',')[1];
+        itemFotos[id] = { base64: base64, mimeType: file.type, nomeArquivo: file.name };
+        preview.innerHTML = '<img src="' + dataUrl + '">';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('btnAddItem').addEventListener('click', adicionarItem);
+
+    function mostrarMsg(texto, tipo) {
+      const el = document.getElementById('msg');
+      el.textContent = texto;
+      el.className = tipo;
+    }
+
+    function coletarPayload() {
+      const itens = [];
+      document.querySelectorAll('.item-block').forEach(block => {
+        const id = block.dataset.id;
+        itens.push({
+          tipo: block.querySelector('.f-tipo').value,
+          descricao: block.querySelector('.f-descricao').value.trim(),
+          quantidade: block.querySelector('.f-quantidade').value.trim(),
+          categoria: block.querySelector('.f-categoria').value,
+          justificativa: block.querySelector('.f-justificativa').value.trim(),
+          complementos: block.querySelector('.f-complementos').value.trim(),
+          foto: itemFotos[id] || null,
+        });
+      });
+      return {
+        fazenda: document.getElementById('fazenda').value.trim(),
+        prioridade: document.getElementById('prioridade').value,
+        itens: itens,
+      };
+    }
+
+    function validar(payload) {
+      if (payload.itens.length === 0) return 'Adicione pelo menos um item.';
+      for (const item of payload.itens) {
+        if (!item.descricao) return 'Preencha a descrição de todos os itens.';
+        if (item.tipo === 'Produto' && !item.quantidade) return 'Preencha a quantidade de todos os produtos.';
+      }
+      return null;
+    }
+
+    document.getElementById('btnEnviar').addEventListener('click', function() {
+      const payload = coletarPayload();
+      const erro = validar(payload);
+      if (erro) { mostrarMsg(erro, 'err'); return; }
+
+      const btn = document.getElementById('btnEnviar');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+
+      google.script.run
+        .withSuccessHandler(function(resultado) {
+          mostrarMsg('Solicitação ' + resultado.codigo + ' criada com sucesso (' + resultado.itens.length + ' item(ns)).', 'ok');
+          document.getElementById('itensContainer').innerHTML = '';
+          Object.keys(itemFotos).forEach(k => delete itemFotos[k]);
+          itemCount = 0;
+          adicionarItem();
+          btn.disabled = false;
+          btn.textContent = 'Enviar solicitação';
+        })
+        .withFailureHandler(function(erro) {
+          mostrarMsg('Erro ao enviar: ' + erro.message, 'err');
+          btn.disabled = false;
+          btn.textContent = 'Enviar solicitação';
+        })
+        .criarSolicitacao(payload);
+    });
+
+    google.script.run
+      .withSuccessHandler(function(ctx) {
+        document.getElementById('userInfo').textContent = ctx.usuario.nome + ' · ' + ctx.usuario.setor;
+        if (ctx.categorias && ctx.categorias.length) categorias = ctx.categorias;
+        document.querySelectorAll('.f-categoria').forEach(preencherCategorias);
+      })
+      .withFailureHandler(function(erro) {
+        document.getElementById('userInfo').textContent = 'Erro: ' + erro.message;
+      })
+      .getContextoInicial();
+
+    adicionarItem();
+  </script>
+</body>
+</html>
